@@ -1,0 +1,14 @@
+# Configuração do Netlify para o Fadefy
+# Como o site é estático (HTML puro), não há build.
+
+[build]
+  # publica a raiz do repositório
+  publish = "."
+  # sem etapa de build
+  command = ""
+
+# Garante que a home abra o index.html
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200

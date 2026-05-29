@@ -1,0 +1,14 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+
+# Dependências (caso evolua para build com Node)
+node_modules/
+
+# Variáveis de ambiente (NUNCA suba chaves secretas)
+.env
+.env.local
