@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fadefy — Agende seu horário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --graphite-900:#000000;--graphite-800:#0d0d0d;--graphite-700:#1a1a1a;
+    --graphite-600:#262626;--steel-400:#8a8a8a;--steel-300:#a6a6a6;
+    --mist-200:#cfcfcf;--mist-100:#e6e6e6;--paper:#f5f5f5;--white:#fff;
+    --mint:#5c0a0a;--mint-deep:#7a1212;--mint-soft:rgba(92,10,10,.10);
+    --radius:18px;--radius-sm:12px;
+    --shadow:0 20px 50px -18px rgba(0,0,0,.35);
+    --font-display:'Sora',sans-serif;--font-body:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--graphite-800);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.02em;color:var(--graphite-900)}
+
+  /* shell mobile-first */
+  .app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--paper);position:relative}
+  @media(min-width:480px){.app{box-shadow:var(--shadow);min-height:100vh}}
+
+  /* topo */
+  .topbar{background:linear-gradient(150deg,var(--graphite-800),var(--graphite-600));color:#fff;padding:22px 22px 26px;position:relative;overflow:hidden}
+  .topbar::after{content:"";position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(92,10,10,.18),transparent 70%)}
+  .tb-head{display:flex;align-items:center;gap:11px;position:relative;z-index:1}
+  .tb-logo{width:60px;height:60px;border-radius:10px;background:#fff;padding:5px;flex-shrink:0}
+  .tb-logo img{width:100%;height:100%;object-fit:contain}
+  .tb-name{font-family:var(--font-display);font-weight:700;font-size:1.15rem;color:#fff;line-height:1.1}
+  .tb-sub{font-size:.8rem;color:var(--mist-200)}
+
+  /* progresso */
+  .steps-bar{display:flex;gap:6px;margin-top:20px;position:relative;z-index:1}
+  .steps-bar .sb{flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.18);transition:background .4s}
+  .steps-bar .sb.done{background:var(--mint)}
+
+  /* corpo */
+  .screen{flex:1;padding:28px 22px 110px;animation:fade .45s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .eyebrow{font-family:var(--font-display);font-weight:600;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mint-deep);margin-bottom:8px}
+  .screen h2{font-size:1.55rem;margin-bottom:6px;line-height:1.15}
+  .screen .lead{color:var(--steel-400);font-size:.96rem;margin-bottom:24px}
+
+  /* inputs */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:.82rem;font-weight:600;color:var(--graphite-700);margin-bottom:7px}
+  .field input{width:100%;background:#fff;border:1.5px solid var(--mist-100);border-radius:var(--radius-sm);padding:15px 16px;font-family:var(--font-body);font-size:1rem;color:var(--graphite-900);transition:border-color .2s,box-shadow .2s}
+  .field input:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 4px var(--mint-soft)}
+
+  /* cards selecionáveis */
+  .opt{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1.5px solid var(--mist-100);border-radius:var(--radius-sm);padding:15px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .18s,transform .18s,box-shadow .18s;text-align:left;width:100%;font-family:var(--font-body)}
+  .opt:hover{transform:translateY(-2px);box-shadow:0 8px 22px -12px rgba(0,0,0,.25)}
+  .opt.sel{border-color:var(--mint);background:var(--mint-soft)}
+  .opt .o-main{font-weight:600;color:var(--graphite-900);font-size:1rem}
+  .opt .o-sub{font-size:.8rem;color:var(--steel-400);margin-top:2px}
+  .opt .o-price{font-family:var(--font-display);font-weight:700;color:var(--graphite-900);font-size:1.02rem}
+  .opt .o-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--mist-200);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.18s}
+  .opt.sel .o-check{border-color:var(--mint);background:var(--mint)}
+  .opt .o-check svg{opacity:0;transition:.18s;color:#fff}
+  .opt.sel .o-check svg{opacity:1}
+  .opt .o-left{display:flex;align-items:center;gap:13px}
+  .av{width:42px;height:42px;border-radius:12px;background:linear-gradient(140deg,var(--graphite-700),var(--graphite-600));color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;flex-shrink:0}
+
+  /* chips dias / horários */
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px}
+  .chip-day{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:22px}
+  .chip{background:#fff;border:1.5px solid var(--mist-100);border-radius:var(--radius-sm);padding:11px 6px;text-align:center;cursor:pointer;transition:.16s;font-family:var(--font-body)}
+  .chip:hover{border-color:var(--steel-300)}
+  .chip.sel{border-color:var(--mint);background:var(--mint-soft)}
+  .chip.off{opacity:.38;pointer-events:none;text-decoration:line-through}
+  .chip .c-top{font-size:.7rem;color:var(--steel-400);text-transform:uppercase;letter-spacing:.05em}
+  .chip .c-mid{font-family:var(--font-display);font-weight:700;font-size:1.1rem;color:var(--graphite-900);line-height:1.2}
+  .chip .c-bot{font-size:.66rem;color:var(--steel-400)}
+  .chip.sel .c-mid{color:var(--mint-deep)}
+  .label-sm{font-size:.82rem;font-weight:600;color:var(--graphite-700);margin:4px 0 10px}
+
+  /* botão fixo */
+  .footer-cta{position:fixed;bottom:0;left:0;right:0;max-width:460px;margin:0 auto;padding:16px 22px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper) 70%,transparent);z-index:20}
+  .btn{width:100%;font-family:var(--font-display);font-weight:600;font-size:1.02rem;padding:16px;border:none;border-radius:14px;cursor:pointer;transition:transform .18s,box-shadow .22s,opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary{background:var(--graphite-900);color:#fff}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px -10px rgba(0,0,0,.5)}
+  .btn-mint{background:var(--mint);color:#fff}
+  .btn-mint:hover{transform:translateY(-2px);box-shadow:0 14px 32px -10px rgba(92,10,10,.55)}
+  .btn:disabled{opacity:.4;pointer-events:none}
+  .btn-ghost{background:transparent;color:var(--graphite-700);font-size:.9rem;padding:10px;margin-top:4px}
+
+  .back{background:none;border:none;color:var(--steel-400);font-family:var(--font-body);font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:4px 0}
+  .back:hover{color:var(--graphite-700)}
+
+  /* resumo */
+  .summary{background:#fff;border:1px solid var(--mist-100);border-radius:var(--radius);padding:20px;margin-bottom:8px}
+  .sum-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--mist-100);font-size:.95rem}
+  .sum-row:last-child{border-bottom:none}
+  .sum-row .k{color:var(--steel-400)}
+  .sum-row .v{font-weight:600;color:var(--graphite-900);text-align:right}
+  .sum-total{display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:6px}
+  .sum-total .k{font-family:var(--font-display);font-weight:600}
+  .sum-total .v{font-family:var(--font-display);font-weight:800;font-size:1.45rem;color:var(--mint-deep)}
+
+  /* confirmação */
+  .done-wrap{text-align:center;padding-top:40px}
+  .done-ring{width:96px;height:96px;border-radius:50%;background:var(--mint-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:pop .5s cubic-bezier(.2,.8,.3,1.4)}
+  @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+  .done-ring .inner{width:64px;height:64px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;color:#fff}
+  .done-wrap h2{font-size:1.7rem;margin-bottom:8px}
+  .done-wrap p{color:var(--steel-400);margin-bottom:24px}
+
+  /* loading / erros */
+  .spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  .spinner.dark{border-color:rgba(0,0,0,.25);border-top-color:var(--graphite-900)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .center-load{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--steel-400);padding:60px 20px;text-align:center}
+  .alert{background:#fff;border:1.5px solid #f3c7c7;color:#b3434b;border-radius:var(--radius-sm);padding:13px 15px;font-size:.88rem;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+  .alert.warn{border-color:#f0d9a8;color:#9a7415;background:#fffdf6}
+  .empty{text-align:center;color:var(--steel-400);padding:30px 10px;font-size:.92rem}
+
+  /* config banner */
+  .config-note{background:var(--graphite-900);color:var(--mist-200);font-size:.8rem;padding:11px 16px;text-align:center;line-height:1.5}
+  .config-note code{color:var(--mint);font-family:monospace}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- aviso de config (some quando as chaves forem preenchidas)
+  <div class="config-note" id="configNote">
+    ⚙️ Preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no início do código para conectar ao banco.
+  </div>
+
+  <!-- TOPO -->
+  <div class="topbar">
+    <div class="tb-head">
+      <a href="index.html" class="tb-logo" style="display:block;text-decoration:none"><img src="https://gurunotfound.com.br/imagens/fadefy-favicon-removebg-preview.png" alt="Fadefy"></a>
+      <div>
+        <div class="tb-name" id="barberName">Barbearia</div>
+        <div class="tb-sub">Agende seu horário · powered by Fadefy</div>
+      </div>
+    </div>
+    <div class="steps-bar" id="stepsBar">
+      <div class="sb done"></div><div class="sb"></div><div class="sb"></div>
+      <div class="sb"></div><div class="sb"></div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div id="screen" class="screen"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — cole aqui os dados do seu projeto Supabase
+   (Project Settings > API)
+   ============================================================ */
+const SUPABASE_URL      = "https://rjvzdheijbwrvuyftatl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_tYda815MBlO5sjiKtsA27w_7yllLkN4";
+
+const BARBEARIA_NOME = "Barbearia Navalha"; // nome exibido no topo
+/* ============================================================ */
+
+const configurado = !SUPABASE_URL.includes("COLE_") && !SUPABASE_ANON_KEY.includes("COLE_");
+// slug da barbearia, vindo do link: agendar.html?b=barbearia-navalha
+const SLUG = new URLSearchParams(location.search).get("b");
+let sb = null;
+if (configurado) {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  document.getElementById("configNote")?.classList.add("hide");
+}
+
+/* ---------- estado do fluxo ---------- */
+const state = {
+  step: "phone",      // phone | cadastro | servico | barbeiro | datahora | resumo | done
+  barbearia: null,    // {id, nome}
+  telefone: "",
+  cliente: null,      // {id, nome}
+  nome: "",
+  servico: null,
+  barbeiro: null,
+  data: null,         // 'YYYY-MM-DD'
+  hora: null,         // 'HH:MM'
+  servicos: [],
+  barbeiros: [],
+  ocupados: [],       // horas já agendadas
+};
+
+const screen = document.getElementById("screen");
+const stepsBar = document.getElementById("stepsBar");
+const stepIndex = { phone:0, cadastro:0, servico:1, barbeiro:2, datahora:3, resumo:4, done:4 };
+
+function setBar(){
+  const idx = stepIndex[state.step];
+  [...stepsBar.children].forEach((b,i)=>b.classList.toggle("done", i<=idx));
+}
+
+/* ---------- helpers ---------- */
+function brl(v){ return "R$ " + Number(v).toFixed(2).replace(".",","); }
+function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// gera os próximos 8 dias (a partir de amanhã), pulando domingo
+function gerarDias(){
+  const dias=[]; const nomes=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const meses=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  let d=new Date(); d.setDate(d.getDate()+1);
+  while(dias.length<8){
+    if(d.getDay()!==0){ // pula domingo
+      const iso=d.toISOString().slice(0,10);
+      dias.push({iso, dia:nomes[d.getDay()], num:d.getDate(), mes:meses[d.getMonth()]});
+    }
+    d=new Date(d); d.setDate(d.getDate()+1);
+  }
+  return dias;
+}
+// horários de funcionamento: 09:00 às 19:00, de 30 em 30 min
+function gerarHorarios(){
+  const h=[]; for(let m=9*60;m<19*60;m+=30){ h.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")); } return h;
+}
+
+/* ============================================================
+   RENDER de cada tela
+   ============================================================ */
+function render(){
+  setBar();
+  if(state.step==="phone")    return renderPhone();
+  if(state.step==="cadastro") return renderCadastro();
+  if(state.step==="servico")  return renderServico();
+  if(state.step==="barbeiro") return renderBarbeiro();
+  if(state.step==="datahora") return renderDataHora();
+  if(state.step==="resumo")   return renderResumo();
+  if(state.step==="done")     return renderDone();
+}
+
+/* 1 + 2 + 3 — Telefone -------------------------------------- */
+function renderPhone(){
+  screen.innerHTML = `
+    <div class="eyebrow">Identificação</div>
+    <h2>Vamos começar 💈</h2>
+    <p class="lead">Informe seu telefone para agendar. Sem senha, sem complicação.</p>
+    <div id="phoneAlert"></div>
+    <div class="field">
+      <label>Seu telefone</label>
+      <input id="inpPhone" type="tel" inputmode="numeric" placeholder="(11) 99999-9999" value="${state.telefone}">
+    </div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnPhone">Continuar</button>
+    </div>`;
+  const inp=document.getElementById("inpPhone");
+  inp.addEventListener("input",e=>{ e.target.value=mascaraTel(e.target.value); });
+  inp.focus();
+  document.getElementById("btnPhone").addEventListener("click",buscarCliente);
+}
+function mascaraTel(v){
+  v=v.replace(/\D/g,"").slice(0,11);
+  if(v.length<=2) return v.replace(/(\d{0,2})/,"($1");
+  if(v.length<=7) return v.replace(/(\d{2})(\d{0,5})/,"($1) $2");
+  return v.replace(/(\d{2})(\d{5})(\d{0,4})/,"($1) $2-$3");
+}
+
+async function buscarCliente(){
+  const tel = document.getElementById("inpPhone").value.replace(/\D/g,"");
+  const alert = document.getElementById("phoneAlert");
+  if(tel.length<10){ alert.innerHTML=alertBox("Digite um telefone válido com DDD."); return; }
+  state.telefone = tel;
+
+  if(!configurado){ // modo demo sem banco
+    alert.innerHTML=alertBox("Conecte o Supabase para usar de verdade. Seguindo em modo demonstração…","warn");
+    setTimeout(()=>{ state.step="cadastro"; render(); },900); return;
+  }
+
+  const btn=document.getElementById("btnPhone");
+  btn.innerHTML='<span class="spinner dark"></span>'; btn.disabled=true;
+  try{
+    const { data, error } = await sb.rpc("agendar_cliente",{ p_slug:SLUG, p_telefone:tel });
+    if(error) throw error;
+    if(data && data.encontrado){ state.cliente={id:data.id,nome:data.nome}; state.nome=data.nome; state.step="servico"; }
+    else { state.cliente=null; state.step="cadastro"; }
+    render();
+  }catch(e){
+    btn.innerHTML="Continuar"; btn.disabled=false;
+    alert.innerHTML=alertBox("Não foi possível consultar agora. Verifique a conexão e tente novamente.");
+    console.error(e);
+  }
+}
+
+/* 5 — Cadastro rápido --------------------------------------- */
+function renderCadastro(){
+  screen.innerHTML = `
+    <button class="back" id="back">← voltar</button>
+    <div class="eyebrow">Primeira vez por aqui</div>
+    <h2>Como podemos te chamar?</h2>
+    <p class="lead">Só precisamos do seu nome. Seu telefone já está salvo.</p>
+    <div id="cadAlert"></div>
+    <div class="field">
+      <label>Seu nome</label>
+      <input id="inpNome" type="text" placeholder="Ex.: João Silva" value="${escapeHtml(state.nome)}">
+    </div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnCad">Continuar</button>
+    </div>`;
+  document.getElementById("back").addEventListener("click",()=>{state.step="phone";render();});
+  const inp=document.getElementById("inpNome"); inp.focus();
+  document.getElementById("btnCad").addEventListener("click",salvarCliente);
+}
+
+async function salvarCliente(){
+  const nome=document.getElementById("inpNome").value.trim();
+  const alert=document.getElementById("cadAlert");
+  if(nome.length<2){ alert.innerHTML=alertBox("Digite seu nome."); return; }
+  state.nome=nome;
+
+  if(!configurado){ state.cliente={id:0,nome}; await carregarCatalogo(); state.step="servico"; render(); return; }
+
+  // o cliente é gravado de fato na confirmação (RPC agendar_confirmar)
+  state.cliente=null;
+  state.step="servico"; render();
+}
+
+/* catálogo demo (sem banco). Em produção o catálogo já é carregado
+   no init() via a RPC agendar_dados, filtrado pela barbearia do slug. */
+async function carregarCatalogo(){
+  if(!configurado){
+    state.servicos=[
+      {id:1,nome:"Corte masculino",preco:40,duracao_min:30},
+      {id:2,nome:"Barba",preco:30,duracao_min:20},
+      {id:3,nome:"Corte + barba",preco:65,duracao_min:50},
+      {id:4,nome:"Sobrancelha",preco:15,duracao_min:10},
+      {id:5,nome:"Pezinho",preco:20,duracao_min:15},
+      {id:6,nome:"Combo completo",preco:90,duracao_min:70},
+    ];
+    state.barbeiros=[{id:1,nome:"Pedro"},{id:2,nome:"Lucas"},{id:3,nome:"Rafael"}];
+  }
+}
+
+/* 4a — Serviço ---------------------------------------------- */
+function renderServico(){
+  const saudacao = state.cliente && state.nome ? `Olá, ${escapeHtml(state.nome.split(" ")[0])}! ` : "";
+  screen.innerHTML = `
+    <button class="back" id="back">← voltar</button>
+    <div class="eyebrow">Passo 1 de 3</div>
+    <h2>${saudacao}Escolha o serviço</h2>
+    <p class="lead">Selecione o que você quer fazer hoje.</p>
+    <div id="svcList"></div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnSvc" disabled>Continuar</button>
+    </div>`;
+  document.getElementById("back").addEventListener("click",()=>{
+    state.step = state.cliente ? "phone" : "cadastro"; render();
+  });
+  const list=document.getElementById("svcList");
+  if(!state.servicos.length){ list.innerHTML=`<div class="empty">Nenhum serviço cadastrado ainda.</div>`; return; }
+  list.innerHTML = state.servicos.map(s=>`
+    <button class="opt ${state.servico?.id===s.id?'sel':''}" data-id="${s.id}">
+      <div class="o-left">
+        <div><div class="o-main">${escapeHtml(s.nome)}</div>
+        <div class="o-sub">${s.duracao_min} min</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="o-price">${brl(s.preco)}</span>
+        <span class="o-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </div>
+    </button>`).join("");
+  list.querySelectorAll(".opt").forEach(b=>b.addEventListener("click",()=>{
+    state.servico = state.servicos.find(s=>s.id==b.dataset.id);
+    renderServico(); document.getElementById("btnSvc").disabled=false;
+  }));
+  document.getElementById("btnSvc").disabled=!state.servico;
+  document.getElementById("btnSvc").addEventListener("click",()=>{state.step="barbeiro";render();});
+}
+
+/* 4b — Barbeiro --------------------------------------------- */
+function renderBarbeiro(){
+  screen.innerHTML = `
+    <button class="back" id="back">← voltar</button>
+    <div class="eyebrow">Passo 2 de 3</div>
+    <h2>Com quem você quer cortar?</h2>
+    <p class="lead">Escolha o barbeiro de sua preferência.</p>
+    <div id="bbList"></div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnBb" disabled>Continuar</button>
+    </div>`;
+  document.getElementById("back").addEventListener("click",()=>{state.step="servico";render();});
+  const list=document.getElementById("bbList");
+  if(!state.barbeiros.length){ list.innerHTML=`<div class="empty">Nenhum barbeiro cadastrado ainda.</div>`; return; }
+  list.innerHTML = state.barbeiros.map(b=>`
+    <button class="opt ${state.barbeiro?.id===b.id?'sel':''}" data-id="${b.id}">
+      <div class="o-left">
+        <div class="av">${escapeHtml(b.nome[0])}</div>
+        <div class="o-main">${escapeHtml(b.nome)}</div>
+      </div>
+      <span class="o-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    </button>`).join("");
+  list.querySelectorAll(".opt").forEach(el=>el.addEventListener("click",()=>{
+    state.barbeiro = state.barbeiros.find(b=>b.id==el.dataset.id);
+    renderBarbeiro(); document.getElementById("btnBb").disabled=false;
+  }));
+  document.getElementById("btnBb").disabled=!state.barbeiro;
+  document.getElementById("btnBb").addEventListener("click",()=>{state.step="datahora";state.data=null;state.hora=null;render();});
+}
+
+/* 6 — Data e horário ---------------------------------------- */
+function renderDataHora(){
+  const dias=gerarDias();
+  screen.innerHTML = `
+    <button class="back" id="back">← voltar</button>
+    <div class="eyebrow">Passo 3 de 3</div>
+    <h2>Quando fica bom?</h2>
+    <p class="lead">Escolha o dia e o horário disponível com ${escapeHtml(state.barbeiro.nome)}.</p>
+    <div class="label-sm">Dia</div>
+    <div class="chip-day" id="dayChips">
+      ${dias.map(d=>`<button class="chip ${state.data===d.iso?'sel':''}" data-iso="${d.iso}">
+        <div class="c-top">${d.dia}</div><div class="c-mid">${d.num}</div><div class="c-bot">${d.mes}</div>
+      </button>`).join("")}
+    </div>
+    <div class="label-sm">Horário</div>
+    <div id="hourArea"><div class="empty">Selecione um dia primeiro.</div></div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnDh" disabled>Revisar agendamento</button>
+    </div>`;
+  document.getElementById("back").addEventListener("click",()=>{state.step="barbeiro";render();});
+  document.querySelectorAll("#dayChips .chip").forEach(c=>c.addEventListener("click",async()=>{
+    state.data=c.dataset.iso; state.hora=null;
+    document.querySelectorAll("#dayChips .chip").forEach(x=>x.classList.remove("sel"));
+    c.classList.add("sel");
+    await carregarHorarios();
+  }));
+  document.getElementById("btnDh").addEventListener("click",()=>{state.step="resumo";render();});
+}
+
+async function carregarHorarios(){
+  const area=document.getElementById("hourArea");
+  area.innerHTML=`<div class="empty"><span class="spinner dark" style="display:inline-block"></span></div>`;
+  let ocupados=[];
+  if(configurado){
+    try{
+      const { data } = await sb.rpc("agendar_horarios",{ p_slug:SLUG, p_barbeiro_id:state.barbeiro.id, p_data:state.data });
+      ocupados=(data||[]).map(h=>h.slice(0,5));
+    }catch(e){ console.error(e); }
+  }
+  const horas=gerarHorarios();
+  area.innerHTML=`<div class="chips" id="hourChips">
+    ${horas.map(h=>{
+      const off=ocupados.includes(h);
+      return `<button class="chip ${off?'off':''} ${state.hora===h?'sel':''}" data-h="${h}">
+        <div class="c-mid" style="font-size:.98rem">${h}</div></button>`;
+    }).join("")}
+  </div>`;
+  area.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
+    state.hora=c.dataset.h;
+    area.querySelectorAll(".chip").forEach(x=>x.classList.remove("sel"));
+    c.classList.add("sel");
+    document.getElementById("btnDh").disabled=false;
+  }));
+}
+
+/* 7 — Resumo / confirmação ---------------------------------- */
+function renderResumo(){
+  const dias=gerarDias(); const d=dias.find(x=>x.iso===state.data);
+  const dataFmt = d ? `${d.dia}, ${d.num} ${d.mes}` : state.data;
+  screen.innerHTML = `
+    <button class="back" id="back">← voltar</button>
+    <div class="eyebrow">Quase lá</div>
+    <h2>Confirme seu agendamento</h2>
+    <p class="lead">Revise os detalhes antes de confirmar.</p>
+    <div id="confAlert"></div>
+    <div class="summary">
+      <div class="sum-row"><span class="k">Cliente</span><span class="v">${escapeHtml(state.nome)}</span></div>
+      <div class="sum-row"><span class="k">Serviço</span><span class="v">${escapeHtml(state.servico.nome)}</span></div>
+      <div class="sum-row"><span class="k">Barbeiro</span><span class="v">${escapeHtml(state.barbeiro.nome)}</span></div>
+      <div class="sum-row"><span class="k">Data</span><span class="v">${dataFmt}</span></div>
+      <div class="sum-row"><span class="k">Horário</span><span class="v">${state.hora}</span></div>
+      <div class="sum-total"><span class="k">Total</span><span class="v">${brl(state.servico.preco)}</span></div>
+    </div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnConf">Confirmar agendamento</button>
+    </div>`;
+  document.getElementById("back").addEventListener("click",()=>{state.step="datahora";render();});
+  document.getElementById("btnConf").addEventListener("click",confirmar);
+}
+
+async function confirmar(){
+  const btn=document.getElementById("btnConf");
+  const alert=document.getElementById("confAlert");
+  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+
+  if(!configurado){ setTimeout(()=>{state.step="done";render();},900); return; }
+
+  try{
+    const { data, error } = await sb.rpc("agendar_confirmar",{
+      p_slug:SLUG, p_nome:state.nome, p_telefone:state.telefone,
+      p_servico_id:state.servico.id, p_barbeiro_id:state.barbeiro.id,
+      p_data:state.data, p_hora:state.hora,
+    });
+    if(error) throw error;
+    if(data && data.ok===false && data.erro==="horario_ocupado"){
+      btn.innerHTML="Confirmar agendamento"; btn.disabled=false;
+      alert.innerHTML=alertBox("Esse horário acabou de ser reservado. Escolha outro, por favor.","warn");
+      return;
+    }
+    state.step="done"; render();
+  }catch(e){
+    btn.innerHTML="Confirmar agendamento"; btn.disabled=false;
+    alert.innerHTML=alertBox("Não foi possível confirmar agora. Tente novamente.");
+    console.error(e);
+  }
+}
+
+/* 8 — Tela de confirmação ----------------------------------- */
+function renderDone(){
+  const dias=gerarDias(); const d=dias.find(x=>x.iso===state.data);
+  const dataFmt = d ? `${d.dia}, ${d.num} ${d.mes}` : state.data;
+  screen.innerHTML = `
+    <div class="done-wrap">
+      <div class="done-ring"><div class="inner">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div></div>
+      <h2>Agendamento confirmado!</h2>
+      <p>Te esperamos, ${escapeHtml(state.nome.split(" ")[0])}. 💈</p>
+      <div class="summary" style="text-align:left">
+        <div class="sum-row"><span class="k">Serviço</span><span class="v">${escapeHtml(state.servico.nome)}</span></div>
+        <div class="sum-row"><span class="k">Barbeiro</span><span class="v">${escapeHtml(state.barbeiro.nome)}</span></div>
+        <div class="sum-row"><span class="k">Data</span><span class="v">${dataFmt}</span></div>
+        <div class="sum-row"><span class="k">Horário</span><span class="v">${state.hora}</span></div>
+      </div>
+    </div>
+    <div class="footer-cta">
+      <button class="btn btn-mint" id="btnFinalizar">Finalizar</button>
+      <button class="btn btn-ghost" id="btnNovo">Fazer novo agendamento</button>
+    </div>`;
+  document.getElementById("btnFinalizar").addEventListener("click",()=>{
+    // volta para a tela inicial do app (identificação por telefone)
+    state.telefone=""; state.cliente=null; state.nome="";
+    state.servico=null; state.barbeiro=null; state.data=null; state.hora=null;
+    state.ocupados=[];
+    state.step="phone"; render();
+  });
+  document.getElementById("btnNovo").addEventListener("click",()=>{
+    state.servico=null; state.barbeiro=null; state.data=null; state.hora=null;
+    state.step="servico"; render();
+  });
+}
+
+/* util de alerta */
+function alertBox(msg,tipo){
+  return `<div class="alert ${tipo==='warn'?'warn':''}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>${msg}</span></div>`;
+}
+
+/* tela de erro (link inválido / barbearia não encontrada) */
+function renderErro(titulo,msg){
+  document.getElementById("barberName").textContent="Fadefy";
+  stepsBar.style.display="none";
+  screen.innerHTML=`
+    <div class="eyebrow">Ops…</div>
+    <h2>${escapeHtml(titulo)}</h2>
+    <p class="lead">${escapeHtml(msg)}</p>`;
+}
+
+/* start — carrega a barbearia do slug antes de mostrar o fluxo */
+async function init(){
+  if(!configurado){
+    document.getElementById("barberName").textContent=BARBEARIA_NOME;
+    render(); return;
+  }
+  if(!SLUG){
+    renderErro("Link incompleto","Este link não identifica a barbearia. Use o link de agendamento que a barbearia te enviou (ele termina com ?b=…).");
+    return;
+  }
+  screen.innerHTML=`<div class="empty"><span class="spinner dark" style="display:inline-block"></span></div>`;
+  try{
+    const { data, error } = await sb.rpc("agendar_dados",{ p_slug:SLUG });
+    if(error) throw error;
+    state.barbearia=data.barbearia;
+    state.servicos=data.servicos||[];
+    state.barbeiros=data.barbeiros||[];
+    document.getElementById("barberName").textContent=data.barbearia.nome;
+    render();
+  }catch(e){
+    renderErro("Barbearia não encontrada","Confira o link com a barbearia. ("+(e.message||"erro")+")");
+  }
+}
+init();
+</script>
+</body>
+</html>

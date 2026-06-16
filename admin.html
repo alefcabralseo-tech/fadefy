@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fadefy | Painel Admin</title>
+<link rel="icon" type="image/png" href="assets/logotipo-fadefy.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --graphite-900:#000000;--graphite-800:#0d0d0d;--graphite-700:#1a1a1a;
+    --graphite-600:#262626;--steel-400:#8a8a8a;--steel-300:#a6a6a6;
+    --mist-200:#cfcfcf;--mist-100:#e6e6e6;--paper:#f5f5f5;--white:#fff;
+    --mint:#5c0a0a;--mint-deep:#7a1212;--mint-soft:rgba(92,10,10,.10);
+    --green:#1fae5a;--green-soft:rgba(31,174,90,.12);
+    --red:#c2410c;--red-soft:rgba(194,65,12,.1);
+    --amber:#b45309;--amber-soft:rgba(180,83,9,.12);
+    --radius:18px;--radius-sm:12px;
+    --shadow:0 12px 40px -16px rgba(0,0,0,.2);
+    --shadow-soft:0 24px 60px -20px rgba(0,0,0,.35);
+    --font-display:'Sora',sans-serif;--font-body:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--graphite-800);line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.02em;color:var(--graphite-900)}
+  button{font-family:var(--font-body);cursor:pointer}
+
+  /* LOGIN */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+  .login-wrap::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 500px at 75% 10%,rgba(92,10,10,.12),transparent 60%),radial-gradient(600px 600px at 10% 90%,rgba(138,138,138,.16),transparent 55%)}
+  .login-card{position:relative;z-index:1;background:var(--white);border:1px solid rgba(0,0,0,.07);border-radius:26px;box-shadow:var(--shadow-soft);padding:42px 38px;width:100%;max-width:410px}
+  .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+  .login-brand img{width:46px;height:46px;border-radius:12px}
+  .login-brand .lb-name{font-family:var(--font-display);font-weight:700;font-size:1.4rem;color:var(--graphite-900)}
+  .login-brand .lb-sub{font-size:.78rem;color:var(--steel-400)}
+  .login-card h2{font-size:1.5rem;margin-bottom:5px}
+  .login-card .lc-lead{color:var(--steel-400);font-size:.94rem;margin-bottom:26px}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:.82rem;font-weight:600;color:var(--graphite-700);margin-bottom:7px}
+  .field input,.field select{width:100%;background:var(--white);border:1.5px solid var(--mist-100);border-radius:var(--radius-sm);padding:14px 15px;font-family:var(--font-body);font-size:.98rem;color:var(--graphite-900);transition:.2s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 4px var(--mint-soft)}
+  .btn{font-family:var(--font-display);font-weight:600;border:none;border-radius:13px;transition:transform .18s,box-shadow .22s,opacity .2s,background .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .btn-block{width:100%;padding:15px;font-size:1rem}
+  .btn-primary{background:var(--graphite-900);color:#fff}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px -10px rgba(0,0,0,.5)}
+  .btn-mint{background:var(--mint);color:#fff}
+  .btn-mint:hover{transform:translateY(-2px);box-shadow:0 14px 32px -10px rgba(92,10,10,.55)}
+  .btn-sm{padding:8px 14px;font-size:.84rem;border-radius:10px}
+  .btn-ghost{background:transparent;border:1.5px solid var(--mist-100);color:var(--graphite-700)}
+  .btn-ghost:hover{border-color:var(--graphite-700)}
+  .btn-danger{background:var(--red-soft);color:var(--red)}
+  .btn-danger:hover{background:var(--red);color:#fff}
+  .btn:disabled{opacity:.4;pointer-events:none}
+  .login-hint{font-size:.78rem;color:var(--steel-400);text-align:center;margin-top:18px;line-height:1.5}
+  .login-hint code{background:var(--paper);padding:2px 6px;border-radius:5px;color:var(--graphite-700);font-family:monospace}
+
+  /* SHELL */
+  .shell{display:flex;min-height:100vh}
+  .sidebar{width:250px;background:var(--graphite-900);color:var(--mist-200);display:flex;flex-direction:column;padding:24px 16px;position:sticky;top:0;height:100vh;flex-shrink:0}
+  .sb-brand{display:flex;align-items:center;gap:11px;padding:0 8px 24px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .sb-brand img{width:40px;height:40px;border-radius:10px}
+  .sb-brand .sb-name{font-family:var(--font-display);font-weight:700;font-size:1.18rem;color:#fff;line-height:1}
+  .sb-brand .sb-sub{font-size:.7rem;color:var(--mint);font-weight:600;letter-spacing:.05em}
+  .nav{display:flex;flex-direction:column;gap:3px;margin-top:14px;flex:1}
+  .nav button{display:flex;align-items:center;gap:12px;background:none;border:none;color:var(--steel-300);padding:11px 14px;border-radius:11px;font-size:.94rem;font-weight:500;text-align:left;transition:.18s}
+  .nav button svg{flex-shrink:0;opacity:.8}
+  .nav button:hover{background:rgba(255,255,255,.05);color:#fff}
+  .nav button.on{background:var(--mint);color:#fff;font-weight:600}
+  .nav button.on svg{opacity:1}
+  .sb-foot{padding:14px 8px 0;border-top:1px solid rgba(255,255,255,.08)}
+  .sb-user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px}
+  .sb-user .av{width:34px;height:34px;border-radius:9px;background:var(--graphite-600);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:.9rem}
+  .sb-user .u-name{font-size:.86rem;color:#fff;font-weight:600;line-height:1.1}
+  .sb-user .u-role{font-size:.7rem;color:var(--steel-400)}
+  .sb-logout{margin-top:8px;width:100%;background:none;border:none;color:var(--steel-400);font-size:.82rem;text-align:left;padding:8px 10px;border-radius:9px;display:flex;align-items:center;gap:8px;transition:.18s}
+  .sb-logout:hover{background:rgba(194,65,12,.12);color:var(--red)}
+
+  .main{flex:1;padding:30px 36px 60px;max-width:1180px;overflow-x:hidden}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+  .page-head .ph-eyebrow{font-family:var(--font-display);font-weight:600;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mint-deep);margin-bottom:6px}
+  .page-head h1{font-size:1.7rem}
+  .page-head .ph-sub{color:var(--steel-400);font-size:.94rem;margin-top:3px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .kpi{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:var(--radius);padding:20px}
+  .kpi .k-ic{width:40px;height:40px;border-radius:11px;background:var(--graphite-900);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:13px}
+  .kpi.mint .k-ic{background:var(--mint)}
+  .kpi.green .k-ic{background:var(--green)}
+  .kpi.red .k-ic{background:var(--red)}
+  .kpi .k-num{font-family:var(--font-display);font-weight:700;font-size:1.7rem;color:var(--graphite-900);line-height:1}
+  .kpi .k-num small{font-size:.9rem}
+  .kpi .k-lab{font-size:.85rem;color:var(--steel-400);margin-top:5px}
+
+  .card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--steel-400);font-weight:600;padding:12px 16px;border-bottom:1px solid var(--mist-100)}
+  .tbl td{padding:14px 16px;border-bottom:1px solid var(--mist-100);font-size:.92rem;vertical-align:middle}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tr:hover td{background:var(--paper)}
+  .t-name{font-weight:600;color:var(--graphite-900)}
+  .t-sub{font-size:.8rem;color:var(--steel-400)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:600;padding:4px 11px;border-radius:99px;white-space:nowrap}
+  .badge.ativo{background:var(--green-soft);color:var(--green)}
+  .badge.inadimplente{background:var(--red-soft);color:var(--red)}
+  .badge.suspenso{background:var(--mist-100);color:var(--steel-400)}
+  .badge.teste{background:var(--amber-soft);color:var(--amber)}
+  .badge.pago{background:var(--green-soft);color:var(--green)}
+  .badge.pendente{background:var(--amber-soft);color:var(--amber)}
+  .badge.atrasado{background:var(--red-soft);color:var(--red)}
+  .actions{display:flex;gap:6px;justify-content:flex-end}
+  .icon-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--mist-100);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--steel-400);transition:.16s}
+  .icon-btn:hover{color:var(--graphite-900);border-color:var(--graphite-700)}
+  .icon-btn.del:hover{color:var(--red);border-color:var(--red);background:var(--red-soft)}
+  .icon-btn.link:hover{color:var(--green);border-color:var(--green);background:var(--green-soft)}
+  .due{font-weight:600}
+  .due.late{color:var(--red)}
+  .due.soon{color:var(--amber)}
+  .due.ok{color:var(--graphite-800)}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;animation:fade .2s}
+  .modal{background:#fff;border-radius:22px;box-shadow:var(--shadow-soft);width:100%;max-width:480px;padding:28px;animation:pop .25s cubic-bezier(.2,.8,.3,1.2);max-height:92vh;overflow-y:auto}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal h3{font-size:1.3rem;margin-bottom:5px}
+  .modal .m-sub{color:var(--steel-400);font-size:.9rem;margin-bottom:22px}
+  .modal-actions{display:flex;gap:10px;margin-top:24px}
+  .modal-actions .btn{flex:1;padding:13px}
+  .row2{display:flex;gap:12px}.row2>*{flex:1}
+
+  .center-load{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--steel-400);padding:70px 20px;text-align:center}
+  .spinner{width:22px;height:22px;border:2.5px solid rgba(0,0,0,.2);border-top-color:var(--graphite-900);border-radius:50%;animation:spin .7s linear infinite}
+  .spinner.light{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{text-align:center;color:var(--steel-400);padding:40px 16px;font-size:.93rem}
+  .alert{border-radius:var(--radius-sm);padding:12px 15px;font-size:.88rem;margin-bottom:16px}
+  .alert.err{background:var(--red-soft);color:var(--red)}
+  .alert.ok{background:var(--green-soft);color:var(--green)}
+  .alert.info{background:var(--amber-soft);color:var(--amber)}
+  .config-note{background:var(--graphite-900);color:var(--mist-200);font-size:.8rem;padding:10px 16px;text-align:center}
+  .config-note code{color:var(--mint);font-family:monospace}
+  .hide{display:none!important}
+  .link-box{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--mist-100);border-radius:10px;padding:10px 12px;font-family:monospace;font-size:.82rem;color:var(--graphite-700);word-break:break-all}
+
+  .menu-toggle{display:none;width:40px;height:40px;border-radius:10px;border:1.5px solid var(--mist-100);background:#fff;align-items:center;justify-content:center;margin-bottom:16px}
+  @media(max-width:880px){
+    .sidebar{position:fixed;left:0;top:0;z-index:90;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow-soft)}
+    .sidebar.open{transform:none}
+    .main{padding:20px 18px 60px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .menu-toggle{display:flex!important}
+    .tbl{font-size:.82rem}
+    .tbl .hide-mobile{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="config-note" id="configNote">
+  ⚙️ Preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no código e rode o <code>fadefy-supabase-saas.sql</code>. Veja o guia <code>ADMIN-SAAS-GUIA.md</code>.
+</div>
+
+<div id="root"></div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO Supabase (Project Settings > API)
+   ============================================================ */
+const SUPABASE_URL      = "https://rjvzdheijbwrvuyftatl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_tYda815MBlO5sjiKtsA27w_7yllLkN4";
+
+// base do link de agendamento entregue a cada barbearia.
+// Usa o MESMO domínio onde o admin está aberto:
+//  • local  -> file:///.../agendar.html  (funciona no seu PC)
+//  • Netlify -> https://seusite/agendar.html (compartilhável com clientes)
+const BASE_AGENDAMENTO = new URL("agendar.html", location.href).href;
+/* ============================================================ */
+
+const configurado = !SUPABASE_URL.includes("COLE_") && !SUPABASE_ANON_KEY.includes("COLE_");
+let sb = configurado ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+if(configurado) document.getElementById("configNote")?.classList.add("hide");
+
+const root = document.getElementById("root");
+const admin = { logado:false, view:"barbearias", usuario:null, barbearias:[], pagamentos:[] };
+
+const fmtBRL = v => "R$ " + Number(v||0).toFixed(2).replace(".",",");
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slugify = s => (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function fmtData(d){ if(!d) return "—"; const p=(""+d).slice(0,10).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; }
+function diasPara(d){ if(!d) return null; const hoje=new Date(); hoje.setHours(0,0,0,0); const alvo=new Date(d+"T00:00:00"); return Math.round((alvo-hoje)/86400000); }
+
+render();
+
+function render(){ admin.logado ? renderShell() : renderLogin(); }
+
+/* ============================================================
+   LOGIN (Supabase Auth)
+   ============================================================ */
+function renderLogin(){
+  root.innerHTML = `
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="assets/logotipo-fadefy.png" alt="Fadefy">
+        <div><div class="lb-name">Fadefy</div><div class="lb-sub">Admin · SaaS</div></div>
+      </div>
+      <h2>Central administrativa</h2>
+      <p class="lc-lead">Acesso restrito ao administrador do Fadefy.</p>
+      <div id="loginAlert"></div>
+      <div class="field"><label>E-mail</label><input id="inEmail" type="email" placeholder="voce@fadefy.com"></div>
+      <div class="field"><label>Senha</label><input id="inPass" type="password" placeholder="••••••••"></div>
+      <button class="btn btn-mint btn-block" id="btnLogin">Entrar</button>
+      <div class="login-hint" id="loginHint">${configurado?'':'Modo demonstração — clique em Entrar para explorar.'}</div>
+    </div>
+  </div>`;
+
+  document.getElementById("btnLogin").addEventListener("click", entrar);
+  document.getElementById("inPass").addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
+}
+
+async function entrar(){
+  const al=document.getElementById("loginAlert");
+  const email=document.getElementById("inEmail").value.trim();
+  const pass=document.getElementById("inPass").value;
+
+  if(!configurado){ // modo demonstração
+    admin.usuario={nome:"Admin (demo)",email:"demo@fadefy.com"};
+    demoData(); admin.logado=true; render(); return;
+  }
+
+  if(!email||!pass){ al.innerHTML=`<div class="alert err">Informe e-mail e senha.</div>`; return; }
+  const btn=document.getElementById("btnLogin");
+  btn.innerHTML='<span class="spinner light"></span>'; btn.disabled=true;
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
+    if(error) throw error;
+    // verifica se é admin
+    const { data:perfil } = await sb.from("perfis").select("nome,role").eq("id",data.user.id).maybeSingle();
+    if(!perfil || perfil.role!=="admin"){
+      await sb.auth.signOut();
+      al.innerHTML=`<div class="alert err">Este acesso é exclusivo do administrador.</div>`;
+      btn.innerHTML="Entrar"; btn.disabled=false; return;
+    }
+    admin.usuario={nome:perfil.nome||"Admin",email};
+    await carregarDados();
+    admin.logado=true; render();
+  }catch(e){
+    btn.innerHTML="Entrar"; btn.disabled=false;
+    al.innerHTML=`<div class="alert err">${esc(e.message||"Não foi possível entrar.")}</div>`;
+  }
+}
+
+async function carregarDados(){
+  if(!configurado){ demoData(); return; }
+  try{
+    const [bb,pg]=await Promise.all([
+      sb.from("barbearias").select("*").order("criado_em",{ascending:false}),
+      sb.from("pagamentos").select("*").order("competencia",{ascending:false}),
+    ]);
+    admin.barbearias=bb.data||[]; admin.pagamentos=pg.data||[];
+  }catch(e){ console.error(e); demoData(); }
+}
+
+function demoData(){
+  const hoje=new Date(); const iso=d=>new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()+d).toISOString().slice(0,10);
+  admin.barbearias=[
+    {id:1,nome:"Barbearia Navalha",slug:"barbearia-navalha",dono_nome:"Pedro Santos",dono_email:"pedro@navalha.com",telefone:"11999990001",plano:"mensal",valor_mensal:79.90,status:"ativo",proximo_pagamento:iso(12)},
+    {id:2,nome:"Corte Fino",slug:"corte-fino",dono_nome:"Lucas Oliveira",dono_email:"lucas@cortefino.com",telefone:"11999990002",plano:"mensal",valor_mensal:79.90,status:"inadimplente",proximo_pagamento:iso(-5)},
+    {id:3,nome:"Barber King",slug:"barber-king",dono_nome:"Rafael Souza",dono_email:"rafa@barberking.com",telefone:"11999990003",plano:"anual",valor_mensal:66.58,status:"ativo",proximo_pagamento:iso(40)},
+    {id:4,nome:"Studio Barba & Cia",slug:"studio-barba-cia",dono_nome:"André Lima",dono_email:"andre@barbacia.com",telefone:"11999990004",plano:"mensal",valor_mensal:59.90,status:"teste",proximo_pagamento:iso(7)},
+  ];
+  admin.pagamentos=[
+    {id:1,barbearia_id:1,valor:79.90,competencia:iso(-18),pago_em:iso(-18),status:"pago",metodo:"pix"},
+    {id:2,barbearia_id:3,valor:799.00,competencia:iso(-40),pago_em:iso(-39),status:"pago",metodo:"cartao"},
+    {id:3,barbearia_id:2,valor:79.90,competencia:iso(-5),pago_em:null,status:"atrasado",metodo:"pix"},
+    {id:4,barbearia_id:4,valor:59.90,competencia:iso(7),pago_em:null,status:"pendente",metodo:"pix"},
+  ];
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+const NAV=[
+  {id:"barbearias",lab:"Barbearias",  ic:'<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/>'},
+  {id:"pagamentos",lab:"Pagamentos",  ic:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
+  {id:"resumo",    lab:"Visão geral", ic:'<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>'},
+];
+
+function renderShell(){
+  root.innerHTML=`
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-brand">
+        <img src="assets/logotipo-fadefy.png" alt="Fadefy">
+        <div><div class="sb-name">Fadefy</div><div class="sb-sub">ADMIN · SAAS</div></div>
+      </div>
+      <nav class="nav" id="nav">
+        ${NAV.map(n=>`<button data-v="${n.id}" class="${admin.view===n.id?'on':''}">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${n.ic}</svg>
+          ${n.lab}</button>`).join("")}
+      </nav>
+      <div class="sb-foot">
+        <div class="sb-user">
+          <div class="av">${esc((admin.usuario?.nome||"A")[0])}</div>
+          <div><div class="u-name">${esc(admin.usuario?.nome||"Admin")}</div><div class="u-role">Administrador</div></div>
+        </div>
+        <button class="sb-logout" id="logout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Sair
+        </button>
+      </div>
+    </aside>
+    <main class="main" id="mainArea"></main>
+  </div>`;
+
+  document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click",()=>{
+    admin.view=b.dataset.v; document.getElementById("sidebar").classList.remove("open"); renderView();
+  }));
+  document.getElementById("logout").addEventListener("click",async()=>{
+    if(configurado) await sb.auth.signOut();
+    admin.logado=false; admin.view="barbearias"; render();
+  });
+  renderView();
+}
+
+function menuToggleHTML(){
+  return `<button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>`;
+}
+
+function renderView(){
+  const m=document.getElementById("mainArea");
+  if(admin.view==="barbearias") return viewBarbearias(m);
+  if(admin.view==="pagamentos") return viewPagamentos(m);
+  if(admin.view==="resumo")     return viewResumo(m);
+}
+
+/* ============================================================
+   VIEW: BARBEARIAS
+   ============================================================ */
+function viewBarbearias(m){
+  const lista=admin.barbearias;
+  m.innerHTML=`
+    ${menuToggleHTML()}
+    <div class="page-head">
+      <div><div class="ph-eyebrow">Clientes do SaaS</div><h1>Barbearias</h1>
+        <div class="ph-sub">${lista.length} barbearia(s) cadastrada(s)</div></div>
+      <button class="btn btn-mint btn-sm" id="nova">+ Nova barbearia</button>
+    </div>
+    <div class="card">
+      ${lista.length?`<table class="tbl">
+        <thead><tr><th>Barbearia</th><th class="hide-mobile">Dono</th><th>Plano</th><th>Status</th><th>Próx. pagamento</th><th style="text-align:right">Ações</th></tr></thead>
+        <tbody>${lista.map(b=>{
+          const d=diasPara(b.proximo_pagamento);
+          let due="ok",txt=fmtData(b.proximo_pagamento);
+          if(d!==null){ if(d<0){due="late";txt=`${fmtData(b.proximo_pagamento)} (${Math.abs(d)}d atrasado)`;} else if(d<=7){due="soon";txt=`${fmtData(b.proximo_pagamento)} (em ${d}d)`;} }
+          return `<tr>
+            <td><div class="t-name">${esc(b.nome)}</div><div class="t-sub">/${esc(b.slug)}</div></td>
+            <td class="hide-mobile"><div>${esc(b.dono_nome||"—")}</div><div class="t-sub">${esc(b.dono_email||"")}</div></td>
+            <td>${esc(b.plano)}<div class="t-sub">${fmtBRL(b.valor_mensal)}/mês</div></td>
+            <td><span class="badge ${b.status}">${b.status}</span></td>
+            <td><span class="due ${due}">${txt}</span></td>
+            <td><div class="actions">
+              <button class="icon-btn link" title="Copiar link de agendamento" data-act="link" data-id="${b.id}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></button>
+              <button class="icon-btn" title="Registrar pagamento" data-act="pagar" data-id="${b.id}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></button>
+              <button class="icon-btn" title="Editar" data-act="editar" data-id="${b.id}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+              <button class="icon-btn del" title="Excluir" data-act="excluir" data-id="${b.id}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            </div></td>
+          </tr>`;
+        }).join("")}</tbody></table>`:'<div class="empty">Nenhuma barbearia ainda. Clique em "+ Nova barbearia".</div>'}
+    </div>`;
+
+  document.getElementById("nova").addEventListener("click",()=>modalBarbearia(null));
+  m.querySelectorAll("[data-act]").forEach(btn=>btn.addEventListener("click",()=>{
+    const b=lista.find(x=>x.id==btn.dataset.id);
+    const act=btn.dataset.act;
+    if(act==="editar")  modalBarbearia(b);
+    if(act==="excluir") excluirBarbearia(b);
+    if(act==="link")    copiarLink(b);
+    if(act==="pagar")   modalPagamento(b);
+  }));
+}
+
+function linkDe(b){ return `${BASE_AGENDAMENTO}?b=${b.slug}`; }
+function copiarLink(b){
+  const url=linkDe(b);
+  navigator.clipboard?.writeText(url).then(()=>toast("Link copiado!"),()=>{});
+  openModal(`
+    <h3>Link de agendamento</h3>
+    <p class="m-sub">Entregue este link para <strong>${esc(b.nome)}</strong> divulgar aos clientes.</p>
+    <div class="link-box">${esc(url)}</div>
+    <div class="modal-actions"><button class="btn btn-mint" id="mClose">Fechar</button></div>`);
+  document.getElementById("mClose").addEventListener("click",closeModal);
+}
+
+function modalBarbearia(b){
+  const ed=!!b;
+  openModal(`
+    <h3>${ed?'Editar barbearia':'Nova barbearia'}</h3>
+    <p class="m-sub">${ed?'Atualize os dados do cliente.':'Cadastre uma nova barbearia cliente do Fadefy.'}</p>
+    <div id="mAlert"></div>
+    <div class="field"><label>Nome da barbearia</label><input id="bNome" value="${ed?esc(b.nome):''}" placeholder="Ex.: Barbearia Navalha"></div>
+    <div class="row2">
+      <div class="field"><label>Nome do dono</label><input id="bDono" value="${ed?esc(b.dono_nome||''):''}" placeholder="Ex.: Pedro Santos"></div>
+      <div class="field"><label>Telefone</label><input id="bTel" value="${ed?esc(b.telefone||''):''}" placeholder="(11) 99999-9999"></div>
+    </div>
+    <div class="field"><label>E-mail do dono (login)</label><input id="bEmail" type="email" value="${ed?esc(b.dono_email||''):''}" placeholder="dono@barbearia.com"></div>
+    ${ed?'':`<div class="field"><label>Senha inicial do dono</label><input id="bSenha" type="text" placeholder="defina uma senha"></div>`}
+    <div class="row2">
+      <div class="field"><label>Plano</label>
+        <select id="bPlano">
+          <option value="teste" ${ed&&b.plano==='teste'?'selected':''}>Teste grátis</option>
+          <option value="mensal" ${(!ed||b.plano==='mensal')?'selected':''}>Mensal</option>
+          <option value="trimestral" ${ed&&b.plano==='trimestral'?'selected':''}>Trimestral</option>
+          <option value="anual" ${ed&&b.plano==='anual'?'selected':''}>Anual</option>
+        </select></div>
+      <div class="field"><label>Valor mensal (R$)</label><input id="bValor" type="number" step="0.01" value="${ed?b.valor_mensal:'79.90'}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Status</label>
+        <select id="bStatus">
+          ${['ativo','teste','inadimplente','suspenso'].map(s=>`<option value="${s}" ${(ed?b.status:'teste')===s?'selected':''}>${s}</option>`).join("")}
+        </select></div>
+      <div class="field"><label>Próximo pagamento</label><input id="bProx" type="date" value="${ed?((''+b.proximo_pagamento).slice(0,10)):''}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mCancel">Cancelar</button>
+      <button class="btn btn-mint" id="mSave">${ed?'Salvar':'Cadastrar'}</button>
+    </div>`);
+
+  // auto-preenche slug a partir do nome (apenas em criação)
+  document.getElementById("mCancel").addEventListener("click",closeModal);
+  document.getElementById("mSave").addEventListener("click",async()=>{
+    const nome=document.getElementById("bNome").value.trim();
+    const al=document.getElementById("mAlert");
+    if(!nome){ al.innerHTML='<div class="alert err">Informe o nome da barbearia.</div>'; return; }
+    const obj={
+      nome,
+      slug: ed? b.slug : slugify(nome),
+      dono_nome:document.getElementById("bDono").value.trim(),
+      dono_email:document.getElementById("bEmail").value.trim(),
+      telefone:document.getElementById("bTel").value.trim(),
+      plano:document.getElementById("bPlano").value,
+      valor_mensal:parseFloat(document.getElementById("bValor").value)||0,
+      status:document.getElementById("bStatus").value,
+      proximo_pagamento:document.getElementById("bProx").value||null,
+    };
+
+    if(!configurado){
+      if(ed){ Object.assign(b,obj); } else { admin.barbearias.unshift({id:Date.now(),...obj}); }
+      closeModal(); toast(ed?"Barbearia atualizada":"Barbearia cadastrada (demo)"); renderView(); return;
+    }
+
+    const btn=document.getElementById("mSave"); btn.disabled=true; btn.innerHTML='<span class="spinner light"></span>';
+    try{
+      if(ed){
+        const { error } = await sb.from("barbearias").update(obj).eq("id",b.id);
+        if(error) throw error;
+      }else{
+        // 1) cria o registro da barbearia
+        const { data, error } = await sb.from("barbearias").insert(obj).select().single();
+        if(error) throw error;
+        // 2) cria o LOGIN do dono — exige Edge Function (service_role).
+        const senha=document.getElementById("bSenha").value;
+        const r = await criarUsuarioDono({ email:obj.dono_email, senha, nome:obj.dono_nome, barbearia_id:data.id });
+        if(!r.ok){ al.innerHTML=`<div class="alert info">Barbearia criada, mas o login do dono não pôde ser gerado automaticamente: ${esc(r.motivo)}. Veja o guia para configurar a Edge Function.</div>`; }
+      }
+      await carregarDados(); closeModal(); toast(ed?"Barbearia atualizada":"Barbearia cadastrada"); renderView();
+    }catch(e){
+      btn.disabled=false; btn.innerHTML=ed?'Salvar':'Cadastrar';
+      al.innerHTML=`<div class="alert err">${esc(e.message||'Erro ao salvar.')}</div>`;
+    }
+  });
+}
+
+/* cria o login do dono via função RPC no Postgres (SECURITY DEFINER, só admin). */
+async function criarUsuarioDono({email,senha,nome,barbearia_id}){
+  if(!email || !senha){ return { ok:false, motivo:"informe e-mail e senha do dono" }; }
+  try{
+    const { data, error } = await sb.rpc("criar_dono",{ p_email:email, p_senha:senha, p_nome:nome, p_barbearia_id:barbearia_id });
+    if(error) throw error;
+    return { ok:true, data };
+  }catch(e){
+    return { ok:false, motivo: e.message || "não foi possível criar o login do dono" };
+  }
+}
+
+function excluirBarbearia(b){
+  openModal(`
+    <h3>Excluir barbearia?</h3>
+    <p class="m-sub">Isso remove <strong>${esc(b.nome)}</strong> e todos os dados dela (agendamentos, serviços, clientes). Esta ação não pode ser desfeita.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mCancel">Cancelar</button>
+      <button class="btn btn-danger" id="mDel">Excluir definitivamente</button>
+    </div>`);
+  document.getElementById("mCancel").addEventListener("click",closeModal);
+  document.getElementById("mDel").addEventListener("click",async()=>{
+    if(configurado){ await sb.from("barbearias").delete().eq("id",b.id); await carregarDados(); }
+    else { admin.barbearias=admin.barbearias.filter(x=>x.id!==b.id); }
+    closeModal(); toast("Barbearia excluída"); renderView();
+  });
+}
+
+/* ============================================================
+   VIEW: PAGAMENTOS
+   ============================================================ */
+function viewPagamentos(m){
+  const pg=admin.pagamentos.map(p=>({...p, barbearia: admin.barbearias.find(b=>b.id===p.barbearia_id)}));
+  m.innerHTML=`
+    ${menuToggleHTML()}
+    <div class="page-head"><div><div class="ph-eyebrow">Financeiro</div><h1>Pagamentos</h1>
+      <div class="ph-sub">Histórico e situação dos pagamentos das barbearias.</div></div>
+      <button class="btn btn-mint btn-sm" id="novoPg">+ Registrar pagamento</button></div>
+    <div class="card">
+      ${pg.length?`<table class="tbl">
+        <thead><tr><th>Barbearia</th><th>Competência</th><th>Valor</th><th>Pago em</th><th>Status</th></tr></thead>
+        <tbody>${pg.map(p=>`<tr>
+          <td class="t-name">${esc(p.barbearia?.nome||"—")}</td>
+          <td>${fmtData(p.competencia)}</td>
+          <td>${fmtBRL(p.valor)}</td>
+          <td>${p.pago_em?fmtData(p.pago_em):'—'}</td>
+          <td><span class="badge ${p.status}">${p.status}</span></td>
+        </tr>`).join("")}</tbody></table>`:'<div class="empty">Nenhum pagamento registrado.</div>'}
+    </div>`;
+  document.getElementById("novoPg").addEventListener("click",()=>modalPagamento(null));
+}
+
+function modalPagamento(b){
+  const opcoes=admin.barbearias.map(x=>`<option value="${x.id}" ${b&&b.id===x.id?'selected':''}>${esc(x.nome)}</option>`).join("");
+  openModal(`
+    <h3>Registrar pagamento</h3>
+    <p class="m-sub">Lance um pagamento recebido de uma barbearia.</p>
+    <div class="field"><label>Barbearia</label><select id="pgBb">${opcoes}</select></div>
+    <div class="row2">
+      <div class="field"><label>Valor (R$)</label><input id="pgValor" type="number" step="0.01" value="${b?b.valor_mensal:''}"></div>
+      <div class="field"><label>Pago em</label><input id="pgData" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="field"><label>Método</label>
+      <select id="pgMetodo"><option value="pix">Pix</option><option value="cartao">Cartão</option><option value="boleto">Boleto</option></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mCancel">Cancelar</button>
+      <button class="btn btn-mint" id="mSave">Registrar</button>
+    </div>`);
+  document.getElementById("mCancel").addEventListener("click",closeModal);
+  document.getElementById("mSave").addEventListener("click",async()=>{
+    const bid=parseInt(document.getElementById("pgBb").value);
+    const pago=document.getElementById("pgData").value;
+    const obj={barbearia_id:bid,valor:parseFloat(document.getElementById("pgValor").value)||0,
+      competencia:pago,pago_em:pago,status:"pago",metodo:document.getElementById("pgMetodo").value};
+    if(configurado){ await sb.from("pagamentos").insert(obj); await carregarDados(); }
+    else { admin.pagamentos.unshift({id:Date.now(),...obj}); }
+    closeModal(); toast("Pagamento registrado ✓"); renderView();
+  });
+}
+
+/* ============================================================
+   VIEW: RESUMO (visão geral)
+   ============================================================ */
+function viewResumo(m){
+  const bbs=admin.barbearias;
+  const ativos=bbs.filter(b=>b.status==="ativo").length;
+  const inad=bbs.filter(b=>b.status==="inadimplente").length;
+  const teste=bbs.filter(b=>b.status==="teste").length;
+  const mrr=bbs.filter(b=>b.status==="ativo").reduce((s,b)=>s+Number(b.valor_mensal||0),0);
+  const recebido=admin.pagamentos.filter(p=>p.status==="pago").reduce((s,p)=>s+Number(p.valor||0),0);
+  // vencimentos próximos (7 dias) ou atrasados
+  const alertas=bbs.map(b=>({b,d:diasPara(b.proximo_pagamento)})).filter(x=>x.d!==null&&x.d<=7).sort((a,b)=>a.d-b.d);
+
+  m.innerHTML=`
+    ${menuToggleHTML()}
+    <div class="page-head"><div><div class="ph-eyebrow">Visão geral</div><h1>Resumo do SaaS</h1>
+      <div class="ph-sub">Panorama das barbearias e da receita.</div></div></div>
+    <div class="kpis">
+      <div class="kpi green"><div class="k-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><div class="k-num">${ativos}</div><div class="k-lab">Barbearias ativas</div></div>
+      <div class="kpi mint"><div class="k-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="k-num"><small>R$</small> ${mrr.toFixed(0)}</div><div class="k-lab">Receita recorrente (MRR)</div></div>
+      <div class="kpi red"><div class="k-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="k-num">${inad}</div><div class="k-lab">Inadimplentes</div></div>
+      <div class="kpi"><div class="k-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="k-num">${teste}</div><div class="k-lab">Em período de teste</div></div>
+    </div>
+    <div class="card" style="padding:22px">
+      <h3 style="font-size:1.15rem;margin-bottom:6px">Vencimentos próximos</h3>
+      <p class="t-sub" style="margin-bottom:16px">Barbearias que vencem em até 7 dias ou já atrasadas.</p>
+      ${alertas.length?`<table class="tbl">
+        <thead><tr><th>Barbearia</th><th>Vencimento</th><th>Situação</th></tr></thead>
+        <tbody>${alertas.map(({b,d})=>`<tr>
+          <td class="t-name">${esc(b.nome)}</td>
+          <td>${fmtData(b.proximo_pagamento)}</td>
+          <td>${d<0?`<span class="badge atrasado">${Math.abs(d)} dia(s) atrasado</span>`:`<span class="badge pendente">vence em ${d} dia(s)</span>`}</td>
+        </tr>`).join("")}</tbody></table>`:'<div class="empty">Nenhum vencimento próximo. Tudo em dia! 🎉</div>'}
+      <div style="margin-top:18px;font-size:.85rem;color:var(--steel-400)">Total já recebido (pagamentos registrados): <strong style="color:var(--graphite-900);font-family:var(--font-display)">${fmtBRL(recebido)}</strong></div>
+    </div>`;
+}
+
+/* ============================================================
+   MODAIS + TOAST
+   ============================================================ */
+let modalEl=null;
+function openModal(html){
+  closeModal();
+  modalEl=document.createElement("div"); modalEl.className="modal-bg";
+  modalEl.innerHTML=`<div class="modal">${html}</div>`;
+  modalEl.addEventListener("click",e=>{if(e.target===modalEl)closeModal();});
+  document.body.appendChild(modalEl);
+}
+function closeModal(){ if(modalEl){modalEl.remove();modalEl=null;} }
+let toastT=null;
+function toast(msg){
+  let t=document.getElementById("toast");
+  if(!t){ t=document.createElement("div"); t.id="toast";
+    t.style.cssText="position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--graphite-900);color:#fff;padding:13px 22px;border-radius:13px;font-weight:600;font-size:.92rem;box-shadow:var(--shadow-soft);z-index:200;transition:transform .3s cubic-bezier(.2,.8,.3,1.2);font-family:var(--font-display)";
+    document.body.appendChild(t); }
+  t.textContent=msg;
+  requestAnimationFrame(()=>{t.style.transform="translateX(-50%) translateY(0)";});
+  clearTimeout(toastT); toastT=setTimeout(()=>{t.style.transform="translateX(-50%) translateY(80px)";},2400);
+}
+
+</script>
+</body>
+</html>
