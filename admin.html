@@ -172,8 +172,11 @@
 const SUPABASE_URL      = "https://rjvzdheijbwrvuyftatl.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_tYda815MBlO5sjiKtsA27w_7yllLkN4";
 
-// base do link de agendamento entregue a cada barbearia
-const BASE_AGENDAMENTO = "https://fadefy.netlify.app/agendar.html";
+// base do link de agendamento entregue a cada barbearia.
+// Usa o MESMO domínio onde o admin está aberto:
+//  • local  -> file:///.../agendar.html  (funciona no seu PC)
+//  • Netlify -> https://seusite/agendar.html (compartilhável com clientes)
+const BASE_AGENDAMENTO = new URL("agendar.html", location.href).href;
 /* ============================================================ */
 
 const configurado = !SUPABASE_URL.includes("COLE_") && !SUPABASE_ANON_KEY.includes("COLE_");

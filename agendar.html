@@ -170,7 +170,7 @@ const SLUG = new URLSearchParams(location.search).get("b");
 let sb = null;
 if (configurado) {
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  document.getElementById("configNote").classList.add("hide");
+  document.getElementById("configNote")?.classList.add("hide");
 }
 
 /* ---------- estado do fluxo ---------- */

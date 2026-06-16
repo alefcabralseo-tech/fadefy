@@ -230,7 +230,7 @@ const BARBEARIA_NOME    = "Sua Barbearia";
 
 const configurado = !SUPABASE_URL.includes("COLE_") && !SUPABASE_ANON_KEY.includes("COLE_");
 let sb = configurado ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-if(configurado) document.getElementById("configNote").classList.add("hide");
+if(configurado) document.getElementById("configNote")?.classList.add("hide");
 
 const root = document.getElementById("root");
 
@@ -301,17 +301,19 @@ init();
 /* ============================================================
    INIT: restaura a sessão (se o dono já estava logado)
    ============================================================ */
-async function init(){
-  if(configurado){
-    try{
-      const { data:{ session } } = await sb.auth.getSession();
-      if(session){
-        const perfilOk = await carregarPerfil();
-        if(perfilOk){ await carregarBase(); app.logado=true; }
-      }
-    }catch(e){ console.error(e); }
-  }
-  render();
+function init(){
+  render();                          // desenha o login IMEDIATAMENTE (nunca fica em branco)
+  if(configurado) restaurarSessao(); // tenta reentrar em segundo plano, sem travar a tela
+}
+
+/* se o dono já estava logado, restaura a sessão e entra direto */
+async function restaurarSessao(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) return;
+    const perfilOk = await carregarPerfil();
+    if(perfilOk){ await carregarBase(); app.logado=true; render(); }
+  }catch(e){ console.error(e); }
 }
 
 /* lê o perfil do usuário logado e valida o papel (dono/admin) */
